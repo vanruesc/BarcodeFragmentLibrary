@@ -12,7 +12,7 @@ Add in build.gradle file:
  }
  
  dependencies {
-    compile 'de.fhb.BarcodeFragmentLibrary:app:1.0'
+    compile 'de.fhb.BarcodeFragmentLibrary:app:1.1'
 }
 ```
 

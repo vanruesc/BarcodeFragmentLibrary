@@ -51,7 +51,6 @@ import com.google.zxing.client.android.ViewfinderView;
 import com.google.zxing.client.android.camera.CameraManager;
 import com.google.zxing.client.android.result.ResultHandlerFactory;
 
-import fhb.de.barcodefragment.R;
 
 /**
  * This activity opens the camera and does the actual scanning on a background
@@ -110,7 +109,7 @@ public final class BarcodeFragment extends Fragment implements SurfaceHolder.Cal
     frameLayout.setLayoutParams(layoutParams);
     surfaceView = new SurfaceView(getActivity());
     surfaceView.setLayoutParams(layoutParams);
-    viewfinderView = new ViewfinderView(getActivity(), null); // @todo attrset
+    viewfinderView = new ViewfinderView(getActivity()); // @todo attrset
     viewfinderView.setLayoutParams(layoutParams);
     frameLayout.addView(surfaceView);
     frameLayout.addView(viewfinderView);
