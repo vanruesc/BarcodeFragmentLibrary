@@ -1,4 +1,22 @@
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.1'
+        classpath 'com.github.dcendents:android-maven-plugin:1.2'
+    }
+}
+plugins {
+    id "com.jfrog.bintray" version "1.1"
+}
+
 apply plugin: 'com.android.library'
+apply plugin: 'com.jfrog.bintray'
+apply plugin: 'com.github.dcendents.android-maven'
+
+version = '1.0'
+group = 'de.fhb.BarcodeFragmentLibrary'
 
 android {
     compileSdkVersion 22
@@ -20,8 +38,59 @@ android {
 }
 
 dependencies {
-    compile fileTree(include: ['*.jar'], dir: 'libs')
-    compile 'com.android.support:appcompat-v7:22.1.1'
-    compile files('libs/core.jar')
-    compile files('libs/android-support-v4.jar')
+    compile 'com.android.support:support-v4:22.1.1'
+    compile 'com.google.zxing:core:3.2.0'
+}
+
+bintray {
+    user = 'm-a-x-g'
+    key = System.properties['bintrayApiKey'] //property from gradle.config
+
+    configurations = ['archives'] //When uploading configuration files
+    pkg {
+        repo = 'maven'
+        name = 'BarcodeFragmentLibrary'
+    }
+}
+
+install {
+    repositories.mavenInstaller {
+        pom {
+            project {
+                packaging 'aar'
+                name 'BarcodeFragmentLibrary'
+//                url siteUrl
+                licenses {
+                    license {
+                        name 'The Apache Software License, Version 2.0'
+                        url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+            }
+        }
+    }
+}
+
+task sourcesJar(type: Jar) {
+    from android.sourceSets.main.java.srcDirs
+    classifier = 'sources'
+}
+
+//TODO fix exception
+//task javadoc(type: Javadoc) {
+//    source = android.sourceSets.main.java.srcDirs
+//    classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
+//}
+//
+//task javadocJar(type: Jar, dependsOn: javadoc) {
+//    classifier = 'javadoc'
+//    from javadoc.destinationDir
+//}
+artifacts {
+//    archives javadocJar
+    archives sourcesJar
+}
+
+task findConventions << {
+    println project.getConvention()
 }
