@@ -16,6 +16,7 @@
 
 package com.google.zxing.client.android.result;
 
+
 import com.abhi.barcode.frag.libv2.ScanResult;
 import com.google.zxing.Result;
 import com.google.zxing.client.result.ResultParser;

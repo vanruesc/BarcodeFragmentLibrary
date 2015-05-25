@@ -14,28 +14,21 @@
  * limitations under the License.
  */
 
-package com.google.zxing.client.android.camera;
+package com.google.zxing.client.android.camera.open;
 
-import android.content.SharedPreferences;
+import android.hardware.Camera;
 
 /**
- * Enumerates settings of the preference controlling the front light.
+ * Default implementation for Android before API 9 / Gingerbread.
  */
-public enum FrontLightMode {
+final class DefaultOpenCameraInterface implements OpenCameraInterface {
 
-  /** Always on. */
-  ON,
-  /** On only when ambient light is low. */
-  AUTO,
-  /** Always off. */
-  OFF;
-
-  private static FrontLightMode parse(String modeString) {
-    return modeString == null ? OFF : valueOf(modeString);
+  /**
+   * Calls {@link Camera#open()}.
+   */
+  @Override
+  public Camera open() {
+    return Camera.open();
   }
-
-  public static FrontLightMode readPref(SharedPreferences sharedPrefs) {
-    return parse(sharedPrefs.getString("preferences_front_light_mode", OFF.toString()));
-  }
-
+  
 }

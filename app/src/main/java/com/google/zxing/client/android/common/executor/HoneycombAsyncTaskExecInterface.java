@@ -14,16 +14,21 @@
  * limitations under the License.
  */
 
-package com.google.zxing.client.android.camera.open;
+package com.google.zxing.client.android.common.executor;
 
-import android.hardware.Camera;
+import android.annotation.TargetApi;
+import android.os.AsyncTask;
 
 /**
- * Provides an abstracted means to open a {@link Camera}. The API changes over Android API versions and
- * this allows the app to use newer API methods while retaining backwards-compatible behavior.
+ * On Honeycomb and later, {@link AsyncTask} returns to serial execution by default which is undesirable.
+ * This calls Honeycomb-only APIs to request parallel execution.
  */
-public interface OpenCameraInterface {
+@TargetApi(11)
+public final class HoneycombAsyncTaskExecInterface implements AsyncTaskExecInterface {
 
-  Camera open();
+  @Override
+  public <T> void execute(AsyncTask<T,?,?> task, T... args) {
+    task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, args);
+  }
 
 }

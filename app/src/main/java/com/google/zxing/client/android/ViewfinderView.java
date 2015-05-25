@@ -16,23 +16,20 @@
 
 package com.google.zxing.client.android;
 
-import com.abhi.barcode.frag.libv2.IDS;
-import com.google.zxing.ResultPoint;
-import com.google.zxing.client.android.camera.CameraManager;
+import java.util.ArrayList;
+import java.util.List;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
-import android.util.AttributeSet;
 import android.view.View;
 
-import java.util.ArrayList;
-import java.util.List;
+import com.google.zxing.ResultPoint;
+import com.google.zxing.client.android.camera.CameraManager;
 
 /**
  * This view is overlaid on top of the camera preview. It adds the viewfinder rectangle and partial
@@ -58,20 +55,21 @@ public final class ViewfinderView extends View {
   private int scannerAlpha;
   private List<ResultPoint> possibleResultPoints;
   private List<ResultPoint> lastPossibleResultPoints;
+  
+  
 
   // This constructor is used when the class is built from an XML resource.
-  public ViewfinderView(Context context, AttributeSet attrs) {
-    super(context, attrs);
+  public ViewfinderView(Context context) {
+    super(context);
 
     // Initialize these once for performance rather than calling them every time in onDraw().
     paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    Resources resources = getResources();
     maskColor = Color.parseColor("#60000000");
     resultColor = Color.parseColor("#b0000000");
     laserColor = Color.parseColor("#ffcc0000");
     resultPointColor = Color.parseColor("#c0ffbd21");
     scannerAlpha = 0;
-    possibleResultPoints = new ArrayList<>(5);
+    possibleResultPoints = new ArrayList<ResultPoint>(5);
     lastPossibleResultPoints = null;
   }
 
@@ -79,15 +77,13 @@ public final class ViewfinderView extends View {
     this.cameraManager = cameraManager;
   }
 
-  @SuppressLint("DrawAllocation")
-  @Override
+  @SuppressLint("DrawAllocation") @Override
   public void onDraw(Canvas canvas) {
     if (cameraManager == null) {
       return; // not ready yet, early draw before done configuring
     }
     Rect frame = cameraManager.getFramingRect();
-    Rect previewFrame = cameraManager.getFramingRectInPreview();    
-    if (frame == null || previewFrame == null) {
+    if (frame == null) {
       return;
     }
     int width = canvas.getWidth();
@@ -113,6 +109,7 @@ public final class ViewfinderView extends View {
       int middle = frame.height() / 2 + frame.top;
       canvas.drawRect(frame.left + 2, middle - 1, frame.right - 1, middle + 2, paint);
       
+      Rect previewFrame = cameraManager.getFramingRectInPreview();
       float scaleX = frame.width() / (float) previewFrame.width();
       float scaleY = frame.height() / (float) previewFrame.height();
 
@@ -123,7 +120,7 @@ public final class ViewfinderView extends View {
       if (currentPossible.isEmpty()) {
         lastPossibleResultPoints = null;
       } else {
-        possibleResultPoints = new ArrayList<>(5);
+        possibleResultPoints = new ArrayList<ResultPoint>(5);
         lastPossibleResultPoints = currentPossible;
         paint.setAlpha(CURRENT_POINT_OPACITY);
         paint.setColor(resultPointColor);

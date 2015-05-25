@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011 ZXing authors
+ * Copyright (C) 2012 ZXing authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
-package com.google.zxing.client.android;
+package com.google.zxing.client.android.common.executor;
 
-public enum IntentSource {
+import android.os.AsyncTask;
 
-  NATIVE_APP_INTENT,
-  PRODUCT_SEARCH_LINK,
-  ZXING_LINK,
-  NONE
+public interface AsyncTaskExecInterface {
+
+  <T> void execute(AsyncTask<T,?,?> task, T... args);
 
 }

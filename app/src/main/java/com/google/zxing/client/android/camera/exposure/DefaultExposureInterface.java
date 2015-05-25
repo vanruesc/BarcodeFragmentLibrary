@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011 ZXing authors
+ * Copyright (C) 2012 ZXing authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,13 +14,15 @@
  * limitations under the License.
  */
 
-package com.google.zxing.client.android;
+package com.google.zxing.client.android.camera.exposure;
 
-public enum IntentSource {
+import android.hardware.Camera;
 
-  NATIVE_APP_INTENT,
-  PRODUCT_SEARCH_LINK,
-  ZXING_LINK,
-  NONE
+public final class DefaultExposureInterface implements ExposureInterface {
+
+  @Override
+  public void setExposure(Camera.Parameters parameters, boolean lightOn) {
+    // Do nothing
+  }
 
 }
