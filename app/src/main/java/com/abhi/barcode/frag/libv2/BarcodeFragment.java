@@ -63,8 +63,7 @@ import fhb.de.barcodefragment.R;
  * @author Sean Owen
  * @author Abhinava Srivastava
  */
-public final class BarcodeFragment extends Fragment implements
-  SurfaceHolder.Callback {
+public final class BarcodeFragment extends Fragment implements SurfaceHolder.Callback {
 
   private static final String TAG = BarcodeFragment.class.getSimpleName();
 
@@ -80,6 +79,11 @@ public final class BarcodeFragment extends Fragment implements
   private String characterSet;
   private InactivityTimer inactivityTimer;
   private AmbientLightManager ambientLightManager;
+
+  private IScanResultHandler resultHandler;
+  private ICameraManagerListener cameraManagerListener;
+
+  SurfaceView surfaceView;
 
   public ViewfinderView getViewfinderView() {
     return viewfinderView;
@@ -99,14 +103,10 @@ public final class BarcodeFragment extends Fragment implements
     hasSurface = false;
   }
 
-  private IScanResultHandler resultHandler;
-  private ICameraManagerListener cameraManagerListener;
-
   @Override
   public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
     FrameLayout frameLayout = new FrameLayout(getActivity());
-    LayoutParams layoutParams = new LayoutParams(
-      LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT);
+    LayoutParams layoutParams = new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT);
     frameLayout.setLayoutParams(layoutParams);
     surfaceView = new SurfaceView(getActivity());
     surfaceView.setLayoutParams(layoutParams);
@@ -141,20 +141,17 @@ public final class BarcodeFragment extends Fragment implements
     }
   }
 
-  SurfaceView surfaceView;
-
   @SuppressWarnings("deprecation")
   @Override
   public void onResume() {
     super.onResume();
 
-    // CameraManager must be initialized here, not in onCreate(). This is
-    // necessary because we don't
-    // want to open the camera driver and measure the screen size if we're
-    // going to show the help on
-    // first launch. That led to bugs where the scanning rectangle was the
-    // wrong size and partially
-    // off screen.
+    /*
+     * CameraManager must be initialized here, not in onCreate(). This is
+     * necessary because we don't want to open the camera driver and measure the screen size if we're
+     * going to show the help on first launch. That led to bugs where the scanning rectangle was the
+     * wrong size and partially off screen.
+     */
     cameraManager = new CameraManager(getActivity(), getView());
     viewfinderView.setCameraManager(cameraManager);
 
@@ -163,18 +160,17 @@ public final class BarcodeFragment extends Fragment implements
     }
 
     handler = null;
-
     resetStatusView();
-
     SurfaceHolder surfaceHolder = surfaceView.getHolder();
+
     if(hasSurface) {
-      // The activity was paused but not stopped, so the surface still
-      // exists. Therefore
-      // surfaceCreated() won't be called, so init the camera here.
+      /*
+       * The activity was paused but not stopped, so the surface still
+       * exists. Therefore surfaceCreated() won't be called, so init the camera here.
+       */
       initCamera(surfaceHolder);
     } else {
-      // Install the callback and wait for surfaceCreated() to init the
-      // camera.
+      // Install the callback and wait for surfaceCreated() to init the camera.
       surfaceHolder.addCallback(this);
       surfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
     }
@@ -190,14 +186,17 @@ public final class BarcodeFragment extends Fragment implements
       handler.quitSynchronously();
       handler = null;
     }
+
     inactivityTimer.onPause();
     ambientLightManager.stop();
     cameraManager.closeDriver();
+
     if(!hasSurface) {
       SurfaceView surfaceView = this.surfaceView;
       SurfaceHolder surfaceHolder = surfaceView.getHolder();
       surfaceHolder.removeCallback(this);
     }
+
     super.onPause();
   }
 
@@ -212,18 +211,19 @@ public final class BarcodeFragment extends Fragment implements
   }
 
   private void decodeOrStoreSavedBitmap(Bitmap bitmap, Result result) {
-    // Bitmap isn't used yet -- will be used soon
+    // Bitmap isn't used.
     if(handler == null) {
       savedResultToShow = result;
     } else {
       if(result != null) {
         savedResultToShow = result;
       }
+
       if(savedResultToShow != null) {
-        Message message = Message.obtain(handler,
-          IDS.id.decode_succeeded, savedResultToShow);
+        Message message = Message.obtain(handler, IDS.id.decode_succeeded, savedResultToShow);
         handler.sendMessage(message);
       }
+
       savedResultToShow = null;
     }
   }
@@ -233,6 +233,7 @@ public final class BarcodeFragment extends Fragment implements
     if(holder == null) {
       Log.e(TAG, "*** WARNING *** surfaceCreated() gave us a null surface!");
     }
+
     if(!hasSurface) {
       hasSurface = true;
       initCamera(holder);
@@ -248,8 +249,7 @@ public final class BarcodeFragment extends Fragment implements
   public void surfaceChanged(SurfaceHolder holder, int format, int width,  int height) {}
 
   /**
-   * A valid barcode has been found, so give an indication of success and show
-   * the results.
+   * A valid barcode has been found, so give an indication of success and show the results.
    *
    * @param rawResult The contents of the barcode.
    * @param scaleFactor amount by which thumbnail was scaled
@@ -260,43 +260,42 @@ public final class BarcodeFragment extends Fragment implements
     ScanResult resultHandler = ResultHandlerFactory.parseResult(rawResult);
 
     boolean fromLiveScan = barcode != null;
+
     if(fromLiveScan) {
       drawResultPoints(barcode, scaleFactor, rawResult);
     }
 
     handleDecodeInternally(rawResult, resultHandler, barcode);
-
   }
 
   /**
    * Superimpose a line for 1D or dots for 2D to highlight the key features of
    * the barcode.
    *
-   * @param barcode     A bitmap of the captured image.
+   * @param barcode A bitmap of the captured image.
    * @param scaleFactor amount by which thumbnail was scaled
-   * @param rawResult   The decoded results which contains the points to draw.
+   * @param rawResult The decoded results which contains the points to draw.
    */
   private void drawResultPoints(Bitmap barcode, float scaleFactor, Result rawResult) {
     ResultPoint[] points = rawResult.getResultPoints();
+
     if(points != null && points.length > 0) {
       Canvas canvas = new Canvas(barcode);
       Paint paint = new Paint();
       paint.setColor(Color.parseColor("#c099cc00"));
+
       if(points.length == 2) {
         paint.setStrokeWidth(4.0f);
         drawLine(canvas, paint, points[0], points[1], scaleFactor);
-      } else if(points.length == 4
-        && (rawResult.getBarcodeFormat() == BarcodeFormat.UPC_A || rawResult
-        .getBarcodeFormat() == BarcodeFormat.EAN_13)) {
-        // Hacky special case -- draw two lines, for the barcode and
-        // metadata
+      } else if(points.length == 4 && (rawResult.getBarcodeFormat() == BarcodeFormat.UPC_A || rawResult.getBarcodeFormat() == BarcodeFormat.EAN_13)) {
+        // Hacky special case -- draw two lines, for the barcode and metadata
         drawLine(canvas, paint, points[0], points[1], scaleFactor);
         drawLine(canvas, paint, points[2], points[3], scaleFactor);
       } else {
         paint.setStrokeWidth(10.0f);
+
         for(ResultPoint point : points) {
-          canvas.drawPoint(scaleFactor * point.getX(), scaleFactor
-            * point.getY(), paint);
+          canvas.drawPoint(scaleFactor * point.getX(), scaleFactor * point.getY(), paint);
         }
       }
     }
@@ -304,14 +303,16 @@ public final class BarcodeFragment extends Fragment implements
 
   private static void drawLine(Canvas canvas, Paint paint, ResultPoint a, ResultPoint b, float scaleFactor) {
     if(a != null && b != null) {
-      canvas.drawLine(scaleFactor * a.getX(), scaleFactor * a.getY(),
-        scaleFactor * b.getX(), scaleFactor * b.getY(), paint);
+      canvas.drawLine(scaleFactor * a.getX(), scaleFactor * a.getY(), scaleFactor * b.getX(), scaleFactor * b.getY(), paint);
     }
   }
 
-  // Put up our own UI for how to handle the decoded contents.
+  /**
+   * Put up our own UI for how to handle the decoded contents.
+   */
   private void handleDecodeInternally(Result rawResult, ScanResult resultHandler, Bitmap barcode) {
     viewfinderView.setVisibility(View.GONE);
+
     if(this.resultHandler != null) {
       this.resultHandler.scanResult(resultHandler);
     }
@@ -321,18 +322,20 @@ public final class BarcodeFragment extends Fragment implements
     if(surfaceHolder == null) {
       throw new IllegalStateException("No SurfaceHolder provided");
     }
+
     if(cameraManager.isOpen()) {
-      Log.w(TAG,
-        "initCamera() while already open -- late SurfaceView callback?");
+      Log.w(TAG, "initCamera() while already open -- late SurfaceView callback?");
       return;
     }
+
     try {
       cameraManager.openDriver(surfaceHolder);
-      // Creating the handler starts the preview, which can also throw a
-      // RuntimeException.
+
+      // Creating the handler starts the preview, which can also throw a RuntimeException.
       if(handler == null) {
         handler = new CaptureFragmentHandler(this, decodeFormats, decodeHints, characterSet, cameraManager);
       }
+
       decodeOrStoreSavedBitmap(null, null);
     } catch(IOException ioe) {
       Log.w(TAG, ioe);
@@ -358,6 +361,7 @@ public final class BarcodeFragment extends Fragment implements
     if(handler != null) {
       handler.sendEmptyMessageDelayed(IDS.id.restart_preview, delayMS);
     }
+
     resetStatusView();
   }
 
