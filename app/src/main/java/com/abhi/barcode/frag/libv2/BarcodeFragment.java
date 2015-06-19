@@ -154,10 +154,6 @@ public final class BarcodeFragment extends Fragment implements SurfaceHolder.Cal
     cameraManager = new CameraManager(getActivity(), getView());
     viewfinderView.setCameraManager(cameraManager);
 
-    if(cameraManagerListener != null) {
-      cameraManagerListener.setCameraManager(cameraManager);
-    }
-
     handler = null;
     resetStatusView();
     SurfaceHolder surfaceHolder = surfaceView.getHolder();
@@ -336,6 +332,11 @@ public final class BarcodeFragment extends Fragment implements SurfaceHolder.Cal
       }
 
       decodeOrStoreSavedBitmap(null, null);
+
+      // Tell the listener that the camera is ready.
+      if(cameraManagerListener != null) {
+        cameraManagerListener.setCameraManager(cameraManager);
+      }
     } catch(IOException ioe) {
       Log.w(TAG, ioe);
       displayFrameworkBugMessageAndExit();
