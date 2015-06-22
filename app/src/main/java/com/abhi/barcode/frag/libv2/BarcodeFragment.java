@@ -387,9 +387,5 @@ public final class BarcodeFragment extends Fragment implements SurfaceHolder.Cal
 
   public void setCameraManagerListener(ICameraManagerListener cameraManagerListener) {
     this.cameraManagerListener = cameraManagerListener;
-
-    if(cameraManager != null) {
-      cameraManagerListener.setCameraManager(cameraManager);
-    }
   }
 }
