@@ -59,8 +59,7 @@ final class DecodeThread extends Thread {
 			hints.putAll(baseHints);
 		}
 
-		// The prefs can't change while the thread is running, so pick them up
-		// once here.
+		// The prefs can't change while the thread is running, so pick them up once here.
 		if (decodeFormats == null || decodeFormats.isEmpty()) {
 			decodeFormats = EnumSet.noneOf(BarcodeFormat.class);
 			decodeFormats.addAll(DecodeFormatManager.ONE_D_FORMATS);

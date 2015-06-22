@@ -59,6 +59,7 @@ public final class CameraManager {
   private boolean previewing;
   private int requestedFramingRectWidth;
   private int requestedFramingRectHeight;
+
   /**
    * Preview frames are delivered here, which we pass on to the registered handler. Make sure to
    * clear the handler so it will only receive one message.
@@ -70,7 +71,7 @@ public final class CameraManager {
     this.context = captureFragment.getApplicationContext();
     this.configManager = new CameraConfigurationManager(view);
     this.captureFragment = captureFragment;
-    previewCallback = new PreviewCallback(configManager);
+    this.previewCallback = new PreviewCallback(this.configManager);
   }
 
   /**
@@ -81,19 +82,20 @@ public final class CameraManager {
    */
   public synchronized void openDriver(SurfaceHolder holder) throws IOException {
     Camera theCamera = camera;
-    if (theCamera == null) {
+    if(theCamera == null) {
       theCamera = new OpenCameraManager().build().open();
-      if (theCamera == null) {
+      if(theCamera == null) {
         throw new IOException();
       }
       camera = theCamera;
     }
+
     theCamera.setPreviewDisplay(holder);
 
-    if (!initialized) {
+    if(!initialized) {
       initialized = true;
       configManager.initFromCameraParameters(theCamera);
-      if (requestedFramingRectWidth > 0 && requestedFramingRectHeight > 0) {
+      if(requestedFramingRectWidth > 0 && requestedFramingRectHeight > 0) {
         setManualFramingRect(requestedFramingRectWidth, requestedFramingRectHeight);
         requestedFramingRectWidth = 0;
         requestedFramingRectHeight = 0;
@@ -104,24 +106,23 @@ public final class CameraManager {
     String parametersFlattened = parameters == null ? null : parameters.flatten(); // Save these, temporarily
     try {
       configManager.setDesiredCameraParameters(theCamera, false);
-    } catch (RuntimeException re) {
+    } catch(RuntimeException re) {
       // Driver failed
       Log.w(TAG, "Camera rejected parameters. Setting only minimal safe-mode parameters");
       Log.i(TAG, "Resetting to saved camera params: " + parametersFlattened);
       // Reset:
-      if (parametersFlattened != null) {
+      if(parametersFlattened != null) {
         parameters = theCamera.getParameters();
         parameters.unflatten(parametersFlattened);
         try {
           theCamera.setParameters(parameters);
           configManager.setDesiredCameraParameters(theCamera, true);
-        } catch (RuntimeException re2) {
+        } catch(RuntimeException re2) {
           // Well, darn. Give up
           Log.w(TAG, "Camera rejected even safe-mode parameters! No configuration");
         }
       }
     }
-
   }
 
   public synchronized boolean isOpen() {
@@ -132,7 +133,7 @@ public final class CameraManager {
    * Closes the camera driver if still in use.
    */
   public synchronized void closeDriver() {
-    if (camera != null) {
+    if(camera != null) {
       camera.release();
       camera = null;
       // Make sure to clear these each time we close the camera, so that any scanning rect
@@ -148,47 +149,52 @@ public final class CameraManager {
   public synchronized void startPreview() {
     Camera theCamera = camera;
     setCameraDisplayOrientation(captureFragment, 0, theCamera);
-    if (theCamera != null && !previewing) {
+    if(theCamera != null && !previewing) {
       theCamera.startPreview();
       previewing = true;
       autoFocusManager = new AutoFocusManager(context, camera);
     }
   }
-  
-  public static void setCameraDisplayOrientation(Activity activity,
-	         int cameraId, android.hardware.Camera camera) {
-	     android.hardware.Camera.CameraInfo info =
-	             new android.hardware.Camera.CameraInfo();
-	     android.hardware.Camera.getCameraInfo(cameraId, info);
-	     int rotation = activity.getWindowManager().getDefaultDisplay()
-	             .getRotation();
-	     int degrees = 0;
-	     switch (rotation) {
-	         case Surface.ROTATION_0: degrees = 0; break;
-	         case Surface.ROTATION_90: degrees = 90; break;
-	         case Surface.ROTATION_180: degrees = 180; break;
-	         case Surface.ROTATION_270: degrees = 270; break;
-	     }
 
-	     int result;
-	     if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-	         result = (info.orientation + degrees) % 360;
-	         result = (360 - result) % 360;  // compensate the mirror
-	     } else {  // back-facing
-	         result = (info.orientation - degrees + 360) % 360;
-	     }
-	     camera.setDisplayOrientation(result);
-	 }
+  public static void setCameraDisplayOrientation(Activity activity, int cameraId, android.hardware.Camera camera) {
+    android.hardware.Camera.CameraInfo info = new android.hardware.Camera.CameraInfo();
+    android.hardware.Camera.getCameraInfo(cameraId, info);
+    int rotation = activity.getWindowManager().getDefaultDisplay().getRotation();
+    int degrees = 0;
+    switch(rotation) {
+      case Surface.ROTATION_0:
+        degrees = 0;
+        break;
+      case Surface.ROTATION_90:
+        degrees = 90;
+        break;
+      case Surface.ROTATION_180:
+        degrees = 180;
+        break;
+      case Surface.ROTATION_270:
+        degrees = 270;
+        break;
+    }
+
+    int result;
+    if(info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+      result = (info.orientation + degrees) % 360;
+      result = (360 - result) % 360; // compensate the mirror
+    } else { // back-facing
+      result = (info.orientation - degrees + 360) % 360;
+    }
+    camera.setDisplayOrientation(result);
+  }
 
   /**
    * Tells the camera to stop drawing preview frames.
    */
   public synchronized void stopPreview() {
-    if (autoFocusManager != null) {
+    if(autoFocusManager != null) {
       autoFocusManager.stop();
       autoFocusManager = null;
     }
-    if (camera != null && previewing) {
+    if(camera != null && previewing) {
       camera.stopPreview();
       previewCallback.setHandler(null, 0);
       previewing = false;
@@ -199,13 +205,13 @@ public final class CameraManager {
    * Convenience method for {@link BarcodeFragment}
    */
   public synchronized void setTorch(boolean newSetting) {
-    if (newSetting != configManager.getTorchState(camera)) {
-      if (camera != null) {
-        if (autoFocusManager != null) {
+    if(newSetting != configManager.getTorchState(camera)) {
+      if(camera != null) {
+        if(autoFocusManager != null) {
           autoFocusManager.stop();
         }
         configManager.setTorch(camera, newSetting);
-        if (autoFocusManager != null) {
+        if(autoFocusManager != null) {
           autoFocusManager.start();
         }
       }
@@ -226,26 +232,9 @@ public final class CameraManager {
   /**
    * Convenience method for {@link BarcodeFragment}
    *
-   * @return Whether the action is supported or not.
-   */
-  public synchronized boolean setZoom(Integer zoom) {
-    boolean supported = camera.getParameters().isZoomSupported();
-    Camera.Parameters params = camera.getParameters();
-
-    if(supported) {
-      params.setZoom(zoom);
-      camera.setParameters(params);
-    }
-
-    return supported;
-  }
-
-  /**
-   * Convenience method for {@link BarcodeFragment}
-   *
    * @return The maximum zoom level. This will be 0 if zooming isn't supported.
    */
-  public synchronized Integer getMaxZoom() {
+  public synchronized int getMaxZoom() {
     return camera.getParameters().isZoomSupported() ? camera.getParameters().getMaxZoom() : 0;
   }
 
@@ -254,9 +243,26 @@ public final class CameraManager {
    *
    * @return Whether the action is supported or not.
    */
-  public synchronized boolean startSmoothZoom(Integer zoom) {
+  public synchronized boolean setZoom(int zoom) {
+    int maxZoom = getMaxZoom();
+    boolean supported = maxZoom > 0;
+    Camera.Parameters params = camera.getParameters();
+    if(supported && zoom >= 0 && zoom <= maxZoom) {
+      params.setZoom(zoom);
+      camera.setParameters(params);
+    }
+    return supported;
+  }
+
+  /**
+   * Convenience method for {@link BarcodeFragment}
+   *
+   * @return Whether the action is supported or not.
+   */
+  public synchronized boolean startSmoothZoom(int zoom) {
+    int maxZoom = getMaxZoom();
     boolean supported = camera.getParameters().isSmoothZoomSupported();
-    if(supported) { camera.startSmoothZoom(zoom); }
+    if(supported && zoom >= 0 && zoom <= maxZoom) { camera.startSmoothZoom(zoom); }
     return supported;
   }
 
@@ -281,7 +287,7 @@ public final class CameraManager {
    */
   public synchronized void requestPreviewFrame(Handler handler, int message) {
     Camera theCamera = camera;
-    if (theCamera != null && previewing) {
+    if(theCamera != null && previewing) {
       previewCallback.setHandler(handler, message);
       theCamera.setOneShotPreviewCallback(previewCallback);
     }
@@ -295,12 +301,11 @@ public final class CameraManager {
    * @return The rectangle to draw on screen in window coordinates.
    */
   public synchronized Rect getFramingRect() {
-    if (framingRect == null) {
-      if (camera == null) {
-        return null;
-      }
+    if(framingRect == null) {
+      if(camera == null) { return null; }
+
       Point screenResolution = configManager.getScreenResolution();
-      if (screenResolution == null) {
+      if(screenResolution == null) {
         // Called early, before init even finished
         return null;
       }
@@ -315,13 +320,13 @@ public final class CameraManager {
     }
     return framingRect;
   }
-  
+
   private static int findDesiredDimensionInRange(int resolution, int hardMin, int hardMax) {
     int dim = resolution / 2; // Target 50% of each dimension
-    if (dim < hardMin) {
+    if(dim < hardMin) {
       return hardMin;
     }
-    if (dim > hardMax) {
+    if(dim > hardMax) {
       return hardMax;
     }
     return dim;
@@ -332,15 +337,15 @@ public final class CameraManager {
    * not UI / screen.
    */
   public synchronized Rect getFramingRectInPreview() {
-    if (framingRectInPreview == null) {
+    if(framingRectInPreview == null) {
       Rect framingRect = getFramingRect();
-      if (framingRect == null) {
+      if(framingRect == null) {
         return null;
       }
       Rect rect = new Rect(framingRect);
       Point cameraResolution = configManager.getCameraResolution();
       Point screenResolution = configManager.getScreenResolution();
-      if (cameraResolution == null || screenResolution == null) {
+      if(cameraResolution == null || screenResolution == null) {
         // Called early, before init even finished
         return null;
       }
@@ -357,16 +362,16 @@ public final class CameraManager {
    * Allows third party apps to specify the scanning rectangle dimensions, rather than determine
    * them automatically based on screen resolution.
    *
-   * @param width The width in pixels to scan.
+   * @param width  The width in pixels to scan.
    * @param height The height in pixels to scan.
    */
   public synchronized void setManualFramingRect(int width, int height) {
-    if (initialized) {
+    if(initialized) {
       Point screenResolution = configManager.getScreenResolution();
-      if (width > screenResolution.x) {
+      if(width > screenResolution.x) {
         width = screenResolution.x;
       }
-      if (height > screenResolution.y) {
+      if(height > screenResolution.y) {
         height = screenResolution.y;
       }
       int leftOffset = (screenResolution.x - width) / 2;
@@ -384,19 +389,17 @@ public final class CameraManager {
    * A factory method to build the appropriate LuminanceSource object based on the format
    * of the preview buffers, as described by Camera.Parameters.
    *
-   * @param data A preview frame.
-   * @param width The width of the image.
+   * @param data   A preview frame.
+   * @param width  The width of the image.
    * @param height The height of the image.
    * @return A PlanarYUVLuminanceSource instance.
    */
   public PlanarYUVLuminanceSource buildLuminanceSource(byte[] data, int width, int height) {
     Rect rect = getFramingRectInPreview();
-    if (rect == null) {
+    if(rect == null) {
       return null;
     }
     // Go ahead and assume it's YUV rather than die.
-    return new PlanarYUVLuminanceSource(data, width, height, rect.left, rect.top,
-                                        rect.width(), rect.height(), false);
+    return new PlanarYUVLuminanceSource(data, width, height, rect.left, rect.top, rect.width(), rect.height(), false);
   }
-
 }

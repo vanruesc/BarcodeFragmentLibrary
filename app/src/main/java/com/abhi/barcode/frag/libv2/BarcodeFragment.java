@@ -78,6 +78,7 @@ public final class BarcodeFragment extends Fragment implements SurfaceHolder.Cal
   private String characterSet;
   private InactivityTimer inactivityTimer;
   private AmbientLightManager ambientLightManager;
+  private boolean alwaysDecodeOnResume, decodeOnResume;
 
   private IScanResultHandler resultHandler;
   private ICameraManagerListener cameraManagerListener;
@@ -96,10 +97,29 @@ public final class BarcodeFragment extends Fragment implements SurfaceHolder.Cal
     return cameraManager;
   }
 
+  /**
+   * After successfully reading a barcode, the app
+   * may be suspended to the background. When the app
+   * is then called back, it will only show the preview,
+   * but it will not try to decode.
+   * However, if the app did not find a code, it will
+   * restart the decoding.
+   * This behaviour can be manipulated to always
+   * forcefully restart the decoding on resume.
+   *
+   * @param alwaysDecodeOnResume Force to always restart decoding on resume.
+   */
+  public void setAlwaysDecodeOnResume(boolean alwaysDecodeOnResume) {
+    this.alwaysDecodeOnResume = alwaysDecodeOnResume;
+  }
+
   @Override
   public void onCreate(Bundle icicle) {
     super.onCreate(icicle);
     hasSurface = false;
+
+    alwaysDecodeOnResume = false;
+    decodeOnResume = true;
   }
 
   @Override
@@ -155,7 +175,6 @@ public final class BarcodeFragment extends Fragment implements SurfaceHolder.Cal
     viewfinderView.setCameraManager(cameraManager);
 
     handler = null;
-    resetStatusView();
     SurfaceHolder surfaceHolder = surfaceView.getHolder();
 
     if(hasSurface) {
@@ -168,6 +187,10 @@ public final class BarcodeFragment extends Fragment implements SurfaceHolder.Cal
       // Install the callback and wait for surfaceCreated() to init the camera.
       surfaceHolder.addCallback(this);
       surfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
+    }
+
+    if(decodeOnResume) {
+      resetStatusView();
     }
 
     ambientLightManager.start(cameraManager);
@@ -186,6 +209,11 @@ public final class BarcodeFragment extends Fragment implements SurfaceHolder.Cal
     ambientLightManager.stop();
     cameraManager.closeDriver();
 
+    // Invalidate the reference to the camera manager.
+    if(cameraManagerListener != null) {
+      cameraManagerListener.setCameraManager(null);
+    }
+
     if(!hasSurface) {
       SurfaceView surfaceView = this.surfaceView;
       SurfaceHolder surfaceHolder = surfaceView.getHolder();
@@ -203,6 +231,7 @@ public final class BarcodeFragment extends Fragment implements SurfaceHolder.Cal
 
   public void restart() {
     restartPreviewAfterDelay(BULK_MODE_SCAN_DELAY_MS);
+    decodeOnResume = true;
   }
 
   private void decodeOrStoreSavedBitmap(Bitmap bitmap, Result result) {
@@ -241,14 +270,15 @@ public final class BarcodeFragment extends Fragment implements SurfaceHolder.Cal
   }
 
   @Override
-  public void surfaceChanged(SurfaceHolder holder, int format, int width,  int height) {}
+  public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+  }
 
   /**
    * A valid barcode has been found, so give an indication of success and show the results.
    *
-   * @param rawResult The contents of the barcode.
+   * @param rawResult   The contents of the barcode.
    * @param scaleFactor amount by which thumbnail was scaled
-   * @param barcode A greyscale bitmap of the camera data which was decoded.
+   * @param barcode     A greyscale bitmap of the camera data which was decoded.
    */
   public void handleDecode(Result rawResult, Bitmap barcode, float scaleFactor) {
     inactivityTimer.onActivity();
@@ -267,9 +297,9 @@ public final class BarcodeFragment extends Fragment implements SurfaceHolder.Cal
    * Superimpose a line for 1D or dots for 2D to highlight the key features of
    * the barcode.
    *
-   * @param barcode A bitmap of the captured image.
+   * @param barcode     A bitmap of the captured image.
    * @param scaleFactor amount by which thumbnail was scaled
-   * @param rawResult The decoded results which contains the points to draw.
+   * @param rawResult   The decoded results which contains the points to draw.
    */
   private void drawResultPoints(Bitmap barcode, float scaleFactor, Result rawResult) {
     ResultPoint[] points = rawResult.getResultPoints();
@@ -306,13 +336,19 @@ public final class BarcodeFragment extends Fragment implements SurfaceHolder.Cal
    * Put up our own UI for how to handle the decoded contents.
    */
   private void handleDecodeInternally(Result rawResult, ScanResult resultHandler, Bitmap barcode) {
-    viewfinderView.setVisibility(View.GONE);
+    this.viewfinderView.setVisibility(View.GONE);
 
     if(this.resultHandler != null) {
+      this.decodeOnResume = false;
       this.resultHandler.scanResult(resultHandler);
     }
   }
 
+  /**
+   * Initializes the camera.
+   *
+   * @param surfaceHolder
+   */
   private void initCamera(SurfaceHolder surfaceHolder) {
     if(surfaceHolder == null) {
       throw new IllegalStateException("No SurfaceHolder provided");
@@ -328,7 +364,9 @@ public final class BarcodeFragment extends Fragment implements SurfaceHolder.Cal
 
       // Creating the handler starts the preview, which can also throw a RuntimeException.
       if(handler == null) {
-        handler = new CaptureFragmentHandler(this, decodeFormats, decodeHints, characterSet, cameraManager);
+        // Don't restart decoding on resume if it's not desired.
+        decodeOnResume = alwaysDecodeOnResume || decodeOnResume;
+        handler = new CaptureFragmentHandler(this, decodeFormats, decodeHints, characterSet, cameraManager, decodeOnResume);
       }
 
       decodeOrStoreSavedBitmap(null, null);

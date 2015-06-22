@@ -53,21 +53,21 @@ public final class CaptureFragmentHandler extends Handler {
     DONE
   }
 
-  public CaptureFragmentHandler(BarcodeFragment activity,
-                         Collection<BarcodeFormat> decodeFormats,
-                         Map<DecodeHintType,?> baseHints,
-                         String characterSet,
-                         CameraManager cameraManager) {
+  public CaptureFragmentHandler(BarcodeFragment activity, Collection<BarcodeFormat> decodeFormats,
+                         Map<DecodeHintType,?> baseHints, String characterSet,
+                         CameraManager cameraManager, boolean startDecoding) {
     this.activity = activity;
-    decodeThread = new DecodeThread(activity, decodeFormats, baseHints, characterSet,
-        new ViewfinderResultPointCallback(activity.getViewfinderView()));
+    decodeThread = new DecodeThread(activity, decodeFormats, baseHints, characterSet, new ViewfinderResultPointCallback(activity.getViewfinderView()));
     decodeThread.start();
     state = State.SUCCESS;
 
     // Start ourselves capturing previews and decoding.
     this.cameraManager = cameraManager;
     cameraManager.startPreview();
-    restartPreviewAndDecode();
+    restartPreview();
+    if(startDecoding) {
+      decode();
+    }
   }
 
   @Override
@@ -75,7 +75,8 @@ public final class CaptureFragmentHandler extends Handler {
     switch (message.what) {
       case IDS.id.restart_preview:
         Log.d(TAG, "Got restart preview message");
-        restartPreviewAndDecode();
+        restartPreview();
+        decode();
         break;
       case IDS.id.decode_succeeded:
         Log.d(TAG, "Got decode succeeded message");
@@ -118,9 +119,14 @@ public final class CaptureFragmentHandler extends Handler {
     removeMessages(IDS.id.decode_failed);
   }
 
-  private void restartPreviewAndDecode() {
+  private void restartPreview() {
     if (state == State.SUCCESS) {
       state = State.PREVIEW;
+    }
+  }
+
+  private void decode() {
+    if (state == State.PREVIEW) {
       cameraManager.requestPreviewFrame(decodeThread.getHandler(), IDS.id.decode);
       activity.drawViewfinder();
     }
