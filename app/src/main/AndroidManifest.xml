@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest package="com.abhi.barcode.frag.libv2" xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest package="com.abhi.barcode.frag.libv2"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.CAMERA"/>
     <uses-permission android:name="android.permission.VIBRATE"/>
@@ -15,6 +17,7 @@
     <uses-feature android:name="android.hardware.camera.flash" android:required="false"/>
     <uses-feature android:name="android.hardware.screen.landscape"/>
     <uses-feature android:name="android.hardware.wifi" android:required="false"/>
+    <uses-sdk tools:overrideLibrary="com.github.buchandersenn.android_permission_manager"/>
 
     <application
         android:allowBackup="true"

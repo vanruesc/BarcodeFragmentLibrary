@@ -20,7 +20,9 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
 
+import android.Manifest;
 import android.app.AlertDialog;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -29,6 +31,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v4.app.Fragment;
+import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.SurfaceHolder;
@@ -38,6 +41,7 @@ import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.FrameLayout.LayoutParams;
 
+import com.github.buchandersenn.android_permission_manager.PermissionManager;
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.DecodeHintType;
 import com.google.zxing.Result;
@@ -79,6 +83,7 @@ public final class BarcodeFragment extends Fragment implements SurfaceHolder.Cal
   private InactivityTimer inactivityTimer;
   private AmbientLightManager ambientLightManager;
   private boolean alwaysDecodeOnResume, decodeOnResume;
+  private PermissionManager permissionManager;
 
   private IScanResultHandler resultHandler;
   private ICameraManagerListener cameraManagerListener;
@@ -117,7 +122,7 @@ public final class BarcodeFragment extends Fragment implements SurfaceHolder.Cal
   public void onCreate(Bundle icicle) {
     super.onCreate(icicle);
     hasSurface = false;
-
+    permissionManager = PermissionManager.create(getActivity());
     alwaysDecodeOnResume = false;
     decodeOnResume = true;
   }
@@ -164,7 +169,13 @@ public final class BarcodeFragment extends Fragment implements SurfaceHolder.Cal
   @Override
   public void onResume() {
     super.onResume();
+    if(PackageManager.PERMISSION_GRANTED == ContextCompat.checkSelfPermission(getActivity(),
+            Manifest.permission.CAMERA)){
+      initFragment();
+    }
+  }
 
+  public void initFragment() {
     /*
      * CameraManager must be initialized here, not in onCreate(). This is
      * necessary because we don't want to open the camera driver and measure the screen size if we're
